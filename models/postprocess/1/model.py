@@ -82,30 +82,45 @@ class TritonPythonModel:
 
         for request in requests:
             in_0 = pb_utils.get_input_tensor_by_name(request, "INPUT_0")
+            in_1 = pb_utils.get_input_tensor_by_name(request, "INPUT_1")
 
-            outputs = in_0.as_numpy()
+            output0 = in_0.as_numpy()
+            output1 = in_1.as_numpy()
+            
+            outputs0 = np.array([cv2.transpose(output0[0])])
+            outputs1 = np.array([cv2.transpose(output1[0])])
+            rows0 = outputs0.shape[1]
+            rows1 = outputs1.shape[1]
 
-            outputs = np.array([cv2.transpose(outputs[0])])
-            rows = outputs.shape[1]
-
-            boxes = []
-            scores = []
-            class_ids = []
-            for i in range(rows):
-                classes_scores = outputs[0][i][4:]
+            boxes0 = []
+            scores0 = []
+            class_ids0 = []
+            for i in range(rows0):
+                classes_scores = outputs0[0][i][4:]
                 (minScore, maxScore, minClassLoc, (x, maxClassIndex)
                  ) = cv2.minMaxLoc(classes_scores)
                 if maxScore >= self.score_threshold:
-                    box = [outputs[0][i][0] -
-                           (0.5 *
-                            outputs[0][i][2]), outputs[0][i][1] -
-                           (0.5 *
-                            outputs[0][i][3]), outputs[0][i][2], outputs[0][i][3]]
-                    boxes.append(box)
-                    scores.append(maxScore)
-                    class_ids.append(maxClassIndex)
+                    box = [outputs0[0][i][0] -
+                           (0.5 * outputs0[0][i][2]), outputs0[0][i][1] -
+                           (0.5 * outputs0[0][i][3]), outputs0[0][i][2], outputs0[0][i][3]]
+                    boxes0.append(box)
+                    scores0.append(maxScore)
+                    class_ids0.append(maxClassIndex)
 
-            result_boxes = cv2.dnn.NMSBoxes(boxes, scores,
+            
+            for i in range(rows1):
+                classes_scores = outputs1[0][i][4:]
+                (minScore, maxScore, minClassLoc, (x, maxClassIndex)
+                 ) = cv2.minMaxLoc(classes_scores)
+                if maxScore >= self.score_threshold:
+                    box = [outputs1[0][i][0] -
+                           (0.5 * outputs1[0][i][2]), outputs1[0][i][1] -
+                           (0.5 * outputs1[0][i][3]), outputs1[0][i][2], outputs1[0][i][3]]
+                    boxes0.append(box)
+                    scores0.append(maxScore)
+                    class_ids0.append(maxClassIndex)
+
+            result_boxes = cv2.dnn.NMSBoxes(boxes0, scores0,
                                             self.score_threshold,
                                             self.nms_threshold,
                                             0.5)
@@ -116,14 +131,14 @@ class TritonPythonModel:
             output_classids = []
             for i in range(len(result_boxes)):
                 index = result_boxes[i]
-                box = boxes[index]
+                box = boxes0[index]
                 detection = {
-                    'class_id': class_ids[index],
-                    'confidence': scores[index],
+                    'class_id': class_ids0[index],
+                    'confidence': scores0[index],
                     'box': box}
                 output_boxes.append(box)
-                output_scores.append(scores[index])
-                output_classids.append(class_ids[index])
+                output_scores.append(scores0[index])
+                output_classids.append(class_ids0[index])
 
                 num_detections += 1
 
