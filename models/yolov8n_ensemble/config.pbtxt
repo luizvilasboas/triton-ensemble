@@ -1,4 +1,4 @@
-name: "yolov8n-ensemble"
+name: "yolov8n_ensemble"
 platform: "ensemble"
 input [
     {
@@ -32,7 +32,7 @@ output [
 ensemble_scheduling {
     step [
         {
-            model_name: "yolov8n-mug"
+            model_name: "yolov8n_mug"
             model_version: -1
             input_map {
                 key: "images"
@@ -40,7 +40,7 @@ ensemble_scheduling {
             }
             output_map {
                 key: "output0"
-                value: "output0"
+                value: "yolov8n_mug_output"
             }
         },
         {
@@ -52,7 +52,7 @@ ensemble_scheduling {
             }
             output_map {
                 key: "output0"
-                value: "output1"
+                value: "yolov8n_output"
             }
         },
         {
@@ -60,11 +60,11 @@ ensemble_scheduling {
             model_version: -1
             input_map {
                 key: "INPUT_0"
-                value: "output0"
+                value: "yolov8n_mug_output"
             }
             input_map {
                 key: "INPUT_1"
-                value: "output1"
+                value: "yolov8n_output"
             }
             output_map {
                 key: "num_detections"

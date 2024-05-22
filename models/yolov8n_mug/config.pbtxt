@@ -1,6 +1,6 @@
 backend: "onnxruntime"
 dynamic_batching { }
-name: "yolov8n-mug"
+name: "yolov8n_mug"
 input: [
     {
         name: "images",

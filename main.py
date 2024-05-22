@@ -102,7 +102,7 @@ def main(image_path, model_name, url):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_path', type=str, default='man-holding-mug.jpg')
-    parser.add_argument('--model_name', type=str, default='yolov8n-ensemble')
+    parser.add_argument('--model_name', type=str, default='yolov8n_ensemble')
     parser.add_argument('--url', type=str, default='localhost:8001')
     args = parser.parse_args()
     main(args.image_path, args.model_name, args.url)
