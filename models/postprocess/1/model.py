@@ -10,167 +10,80 @@ class TritonPythonModel:
     """
 
     def initialize(self, args):
-        """`initialize` is called only once when the model is being loaded.
-        Implementing `initialize` function is optional. This function allows
-        the model to intialize any state associated with this model.
-        Parameters
-        ----------
-        args : dict
-          Both keys and values are strings. The dictionary keys and values are:
-          * model_config: A JSON string containing the model configuration
-          * model_instance_kind: A string containing model instance kind
-          * model_instance_device_id: A string containing model instance device ID
-          * model_repository: Model repository path
-          * model_version: Model version
-          * model_name: Model name
-        """
+        """`initialize` is called only once when the model is being loaded."""
+        self.model_config = json.loads(args['model_config'])
 
-        self.model_config = model_config = json.loads(args['model_config'])
-
-        num_detections_config = pb_utils.get_output_config_by_name(
-            model_config, "num_detections")
-        detection_boxes_config = pb_utils.get_output_config_by_name(
-            model_config, "detection_boxes")
-
-        detection_scores_config = pb_utils.get_output_config_by_name(
-            model_config, "detection_scores")
-
-        detection_classes_config = pb_utils.get_output_config_by_name(
-            model_config, "detection_classes")
-
-        self.num_detections_dtype = pb_utils.triton_string_to_numpy(
-            num_detections_config['data_type'])
-
-        self.detection_boxes_dtype = pb_utils.triton_string_to_numpy(
-            detection_boxes_config['data_type'])
-
-        self.detection_scores_dtype = pb_utils.triton_string_to_numpy(
-            detection_scores_config['data_type'])
-
-        self.detection_classes_dtype = pb_utils.triton_string_to_numpy(
-            detection_classes_config['data_type'])
+        self.num_detections_dtype = self._get_output_dtype("num_detections")
+        self.detection_boxes_dtype = self._get_output_dtype("detection_boxes")
+        self.detection_scores_dtype = self._get_output_dtype("detection_scores")
+        self.detection_classes_dtype = self._get_output_dtype("detection_classes")
 
         self.score_threshold = 0.25
         self.nms_threshold = 0.45
 
+    def _get_output_dtype(self, output_name):
+        output_config = pb_utils.get_output_config_by_name(
+            self.model_config, output_name)
+
+        return pb_utils.triton_string_to_numpy(output_config['data_type'])
+
     def execute(self, requests):
-        """`execute` MUST be implemented in every Python model. `execute`
-        function receives a list of pb_utils.InferenceRequest as the only
-        argument. This function is called when an inference request is made
-        for this model. Depending on the batching configuration (e.g. Dynamic
-        Batching) used, `requests` may contain multiple requests. Every
-        Python model, must create one pb_utils.InferenceResponse for every
-        pb_utils.InferenceRequest in `requests`. If there is an error, you can
-        set the error argument when creating a pb_utils.InferenceResponse
-        Parameters
-        ----------
-        requests : list
-          A list of pb_utils.InferenceRequest
-        Returns
-        -------
-        list
-          A list of pb_utils.InferenceResponse. The length of this list must
-          be the same as `requests`
-        """
-
-        num_detections_dtype = self.num_detections_dtype
-        detection_boxes_dtype = self.detection_boxes_dtype
-        detection_scores_dtype = self.detection_scores_dtype
-        detection_classes_dtype = self.detection_classes_dtype
-
+        """`execute` receives a list of pb_utils.InferenceRequest as the only argument."""
         responses = []
-
         for request in requests:
-            in_0 = pb_utils.get_input_tensor_by_name(request, "INPUT_0")
-            in_1 = pb_utils.get_input_tensor_by_name(request, "INPUT_1")
-
-            output0 = in_0.as_numpy()
-            output1 = in_1.as_numpy()
-            
-            outputs0 = np.array([cv2.transpose(output0[0])])
-            outputs1 = np.array([cv2.transpose(output1[0])])
-            rows0 = outputs0.shape[1]
-            rows1 = outputs1.shape[1]
-
-            boxes0 = []
-            scores0 = []
-            class_ids0 = []
-            for i in range(rows0):
-                classes_scores = outputs0[0][i][4:]
-                (minScore, maxScore, minClassLoc, (x, maxClassIndex)
-                 ) = cv2.minMaxLoc(classes_scores)
-                if maxScore >= self.score_threshold:
-                    box = [outputs0[0][i][0] -
-                           (0.5 * outputs0[0][i][2]), outputs0[0][i][1] -
-                           (0.5 * outputs0[0][i][3]), outputs0[0][i][2], outputs0[0][i][3]]
-                    boxes0.append(box)
-                    scores0.append(maxScore)
-                    class_ids0.append(maxClassIndex)
-
-            
-            for i in range(rows1):
-                classes_scores = outputs1[0][i][4:]
-                (minScore, maxScore, minClassLoc, (x, maxClassIndex)
-                 ) = cv2.minMaxLoc(classes_scores)
-                if maxScore >= self.score_threshold:
-                    box = [outputs1[0][i][0] -
-                           (0.5 * outputs1[0][i][2]), outputs1[0][i][1] -
-                           (0.5 * outputs1[0][i][3]), outputs1[0][i][2], outputs1[0][i][3]]
-                    boxes0.append(box)
-                    scores0.append(maxScore)
-                    class_ids0.append(maxClassIndex)
-
-            result_boxes = cv2.dnn.NMSBoxes(boxes0, scores0,
-                                            self.score_threshold,
-                                            self.nms_threshold,
-                                            0.5)
-
-            num_detections = 0
-            output_boxes = []
-            output_scores = []
-            output_classids = []
-            for i in range(len(result_boxes)):
-                index = result_boxes[i]
-                box = boxes0[index]
-                detection = {
-                    'class_id': class_ids0[index],
-                    'confidence': scores0[index],
-                    'box': box}
-                output_boxes.append(box)
-                output_scores.append(scores0[index])
-                output_classids.append(class_ids0[index])
-
-                num_detections += 1
-
-            num_detections = np.array(num_detections)
-            num_detections = pb_utils.Tensor(
-                "num_detections", num_detections.astype(num_detections_dtype))
-
-            detection_boxes = np.array(output_boxes)
-            detection_boxes = pb_utils.Tensor(
-                "detection_boxes", detection_boxes.astype(detection_boxes_dtype))
-
-            detection_scores = np.array(output_scores)
-            detection_scores = pb_utils.Tensor(
-                "detection_scores", detection_scores.astype(detection_scores_dtype))
-            detection_classes = np.array(output_classids)
-            detection_classes = pb_utils.Tensor(
-                "detection_classes",
-                detection_classes.astype(detection_classes_dtype))
-
-            inference_response = pb_utils.InferenceResponse(
-                output_tensors=[
-                    num_detections,
-                    detection_boxes,
-                    detection_scores,
-                    detection_classes])
-            responses.append(inference_response)
+            input_tensors = self._get_input_tensors(request)
+            detections = self._process_tensors(input_tensors)
+            response = self._create_response(detections)
+            responses.append(response)
 
         return responses
 
+    def _get_input_tensors(self, request):
+        in_0 = pb_utils.get_input_tensor_by_name(request, "INPUT_0").as_numpy()
+        in_1 = pb_utils.get_input_tensor_by_name(request, "INPUT_1").as_numpy()
+
+        return [in_0, in_1]
+
+    def _process_tensors(self, input_tensors):
+        outputs = [cv2.transpose(tensor[0]) for tensor in input_tensors]
+        all_boxes, all_scores, all_class_ids = [], [], []
+
+        for output in outputs:
+            rows = output.shape[0]
+            for i in range(rows):
+                classes_scores = output[i][4:]
+                _, max_score, _, (max_class_idx, _) = cv2.minMaxLoc(classes_scores)
+                if max_score >= self.score_threshold:
+                    box = [output[i][0] - (0.5 * output[i][2]), output[i][1] - (0.5 * output[i][3]), output[i][2], output[i][3]]
+                    all_boxes.append(box)
+                    all_scores.append(max_score)
+                    all_class_ids.append(max_class_idx)
+
+        if len(all_boxes) > 0:
+            indices = cv2.dnn.NMSBoxes(all_boxes, all_scores, self.score_threshold, self.nms_threshold)
+        else:
+            indices = []
+
+        detections = {'boxes': [], 'scores': [], 'class_ids': [], 'num_detections': 0}
+        if len(indices) > 0:
+            for i in indices:
+                idx = i[0] if isinstance(i, np.ndarray) else i
+                detections['boxes'].append(all_boxes[idx])
+                detections['scores'].append(all_scores[idx])
+                detections['class_ids'].append(all_class_ids[idx])
+
+            detections['num_detections'] = len(detections['boxes'])
+
+        return detections
+
+    def _create_response(self, detections):
+        num_detections_tensor = pb_utils.Tensor("num_detections", np.array([detections['num_detections']], dtype=self.num_detections_dtype))
+        detection_boxes_tensor = pb_utils.Tensor("detection_boxes", np.array(detections['boxes'], dtype=self.detection_boxes_dtype))
+        detection_scores_tensor = pb_utils.Tensor("detection_scores", np.array(detections['scores'], dtype=self.detection_scores_dtype))
+        detection_classes_tensor = pb_utils.Tensor("detection_classes", np.array(detections['class_ids'], dtype=self.detection_classes_dtype))
+
+        return pb_utils.InferenceResponse(output_tensors=[num_detections_tensor, detection_boxes_tensor, detection_scores_tensor, detection_classes_tensor])
+
     def finalize(self):
-        """`finalize` is called only once when the model is being unloaded.
-        Implementing `finalize` function is OPTIONAL. This function allows
-        the model to perform any necessary clean ups before exit.
-        """
+        """`finalize` is called only once when the model is being unloaded."""
         pass
