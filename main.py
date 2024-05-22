@@ -65,7 +65,7 @@ class InferencePipeline:
         self.triton_client = triton_client
         self.image_processor = image_processor
 
-    def process(self, image_path: str, model_name: str):
+    def process(self, image_path: str, model_name: str, image_output_path: str):
         expected_image_shape = self.triton_client.get_model_metadata(model_name).inputs[0].shape[-2:]
         original_image, input_image, scale = self.image_processor.read_image(image_path, expected_image_shape)
         results = self.triton_client.run_inference(model_name, input_image)
@@ -87,14 +87,14 @@ class InferencePipeline:
                 round((box[1] + box[3]) * scale)
             )
 
-        cv2.imwrite("output.jpg", original_image)
+        cv2.imwrite(image_output_path, original_image)
 
 
-def main(image_path: str, model_name: str, url: str):
+def main(image_path: str, model_name: str, url: str, image_output_path: str):
     triton_client = TritonClient(url)
     image_processor = ImageProcessor()
     pipeline = InferencePipeline(triton_client, image_processor)
-    pipeline.process(image_path, model_name)
+    pipeline.process(image_path, model_name, image_output_path)
 
 
 if __name__ == "__main__":
@@ -104,4 +104,4 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", "-m", type=str, default="yolov8n_ensemble")
     parser.add_argument("--url", type=str, default="localhost:8001")
     args = parser.parse_args()
-    main(args.image_path, args.model_name, args.url)
+    main(args.image_path, args.model_name, args.url, args.image_output_path)
