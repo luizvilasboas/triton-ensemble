@@ -3,7 +3,7 @@ import argparse
 import shutil
 
 
-def convert_to_onnx(model_path: str, output_path: str) -> None:
+def convert_to_onnx(model_path: str, output_path: str):
     model = YOLO(model_path)
 
     onnx_file = model.export(format='onnx', opset=15)
@@ -14,7 +14,7 @@ def convert_to_onnx(model_path: str, output_path: str) -> None:
             print(f"> Arquivo ONNX movido para {output_path}")
 
 
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser(description="Convert from .pt to .onnx")
     parser.add_argument("model", help="Path of .pt model")
     parser.add_argument("--output", "-o", help="Output path of .onnx model")
