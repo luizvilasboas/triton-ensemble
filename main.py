@@ -17,7 +17,7 @@ class TritonClient:
     def get_model_metadata(self, model_name: str):
         return self.client.get_model_metadata(model_name)
 
-    def run_inference(self, model_name: str, input_image: np.ndarray) -> grpcclient.InferResult | None:
+    def run_inference(self, model_name: str, input_image: np.ndarray):
         inputs = [grpcclient.InferInput("images", input_image.shape, "FP32")]
         inputs[0].set_data_from_numpy(input_image)
 
