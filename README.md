@@ -2,11 +2,11 @@
 
 This project explores the implementation of model ensembles within the Triton Inference Server. It aims to enable seamless loading and execution of two or more models, along with the aggregation of their results.
 
-## Getting Started
+## Usage
 
-### 1. Clone the Repository:
+To run the project, follow these steps:
 
-   Use Git to clone the repository locally:
+1. Clone the Repository:
 
    ```
    git clone https://gitlab.com/olooeez/triton-ensemble.git
@@ -14,34 +14,26 @@ This project explores the implementation of model ensembles within the Triton In
 
    > **Note:** Git Large File Storage (LFS) is required for this repository. Install it using `git lfs install` before cloning.
 
-### 2. Install Dependencies:
-
-   Navigate to the project directory and install necessary dependencies using pip:
+2. Install Dependencies:
 
    ```
    cd triton-ensemble
    pip install -r requirements.txt
    ```
 
-### 3. Build the Docker Image:
-
-   Construct a Docker image to encapsulate the project environment:
+3. Build the Docker Image:
 
    ```
    docker build -t triton-inference-server .
    ```
 
-### 4. Create a Container:
-
-   Execute the `server.sh` script to set up the Triton Inference Server within a container:
+4. Create a Container:
 
    ```
    bash server.sh
    ```
 
-### 5. Run the Client:
-
-   Execute the `main.py` script to interact with the server and initiate model ensemble execution:
+5. Run the Client:
 
    ```
    python3 main.py
