@@ -9,7 +9,7 @@ To run the project, follow these steps:
 1. Clone the Repository:
 
    ```
-   git clone https://gitlab.com/olooeez/triton-ensemble.git
+   git clone https://github.com/luizvilasboas/triton-ensemble.git
    ```
 
    > **Note:** Git Large File Storage (LFS) is required for this repository. Install it using `git lfs install` before cloning.
@@ -45,4 +45,4 @@ If you're interested in contributing to this project, feel free to open a merge 
 
 ## License
 
-This project is available under the [The Unlicense](https://gitlab.com/olooeez/triton-ensemble/-/blob/main/LICENSE). For more information, please see the LICENSE file.
+This project is available under the [The Unlicense](https://github.com/luizvilasboas/triton-ensemble/blob/main/LICENSE). For more information, please see the LICENSE file.
